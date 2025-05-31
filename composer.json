@@ -5,7 +5,7 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Tomazo\\Form\\": "src/"
+            "Tomazo\\Form\\": "src/Form/"
         }
     },
     "authors": [{
