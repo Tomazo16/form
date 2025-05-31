@@ -1,0 +1,29 @@
+{
+    "name": "tomazo/form",
+    "description": "Modular PHP form system with custom validation rules and error handling - ideal for small web apps or rapid prototyping.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Tomazo\\Form\\": "src/"
+        }
+    },
+    "authors": [{
+        "name": "Tomasz Talar",
+        "email": "tomasztalar90@gmail.com"
+    }],
+    "require": {
+        "php": "^8.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0"
+    },
+    "keywords": [
+        "php",
+        "form",
+        "validation",
+        "form-builder",
+        "html-form"
+    ],
+    "minimum-stability": "stable"
+}
