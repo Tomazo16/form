@@ -4,8 +4,12 @@ namespace Tomazo\Form\Validator;
 
 class RequiredRule implements ValidationRule
 {
-    public function validate(string $fieldName, mixed $value): ?string
+    public function __construct(private ?string $message = null)
     {
-        return empty($value) ? ucfirst($fieldName) . " is required." : null;
+        
+    }
+    public function validate(string $fieldName, mixed $value, array $files = []): ?string
+    {
+        return empty($value) ? $this->message ?? ucfirst($fieldName) . " is required." : null;
     }
 }

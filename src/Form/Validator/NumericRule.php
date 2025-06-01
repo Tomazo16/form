@@ -4,8 +4,12 @@ namespace Tomazo\Form\Validator;
 
 class NumericRule implements ValidationRule
 {
-    public function validate(string $fieldName, mixed $value): ?string
+    public function __construct(private ?string $message = null)
     {
-        return !is_numeric($value) ? ucfirst($fieldName) . " must be a numeric value." : null;
+        
+    }
+    public function validate(string $fieldName, mixed $value, array $files = []): ?string
+    {
+        return !is_numeric($value) ? $this->message ?? ucfirst($fieldName) . " must be a numeric value." : null;
     }
 }

@@ -22,7 +22,7 @@ class FormBuilderValidationTest extends TestCase
         $this->assertArrayHasKey('email', $errors);
         $this->assertArrayHasKey('age', $errors);
         $this->assertContains('Email must be a valid email address.', $errors['email']);
-        $this->assertContains('Wiek must be a numeric value.', $errors['age']);
+        $this->assertContains('Age must be a numeric value.', $errors['age']);
     }
 
     public function testValidationPassesWhenValidDataProvided()
