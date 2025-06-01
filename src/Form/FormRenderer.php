@@ -8,7 +8,10 @@ class FormRenderer
     {
         $errors = $formBuilder->getErrors();
 
-        $html = "<form action='{$formBuilder->getAction()}' method='{$formBuilder->getMethod()}'>";
+        $hasFile = array_filter($formBuilder->getFields(), fn($f) => $f['type'] === 'file');
+        $enctype = $hasFile ? " enctype='multipart/from-data'" : '';
+
+        $html = "<form action='{$formBuilder->getAction()}' method='{$formBuilder->getMethod()}'{$enctype}>";
 
         foreach ($formBuilder->getFields() as $name => $field) {
             $label = htmlspecialchars($field['label']);
@@ -20,6 +23,10 @@ class FormRenderer
                 'textarea' => self::renderTextarea($name, $field, $value),
                 'select' => self::renderSelect($name, $field, $value),
                 'radio' => self::renderRadio($name, $field, $value),
+                'file' => match ($field['multiple']) {
+                    true => "<input type='file' name='{$name}[]' id='{$name}' multiple>",
+                    false => "<input type='file' name='{$name}' id='{$name}'>"
+                },
                 default => "<input type='{$field['type']}' name='{$name}' id='{$name}' value='{$value}'><br>",
             };
 

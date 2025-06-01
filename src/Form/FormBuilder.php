@@ -2,6 +2,7 @@
 
 namespace Tomazo\Form;
 
+use Tomazo\Form\Utils\FormUtils;
 use Tomazo\Form\Validator\ValidationRule;
 
 class FormBuilder
@@ -41,14 +42,23 @@ class FormBuilder
         return $this;
     }
 
-    public function validate(array $data): bool
+    public function addFile(string $name, string $label,bool $multiple, array $rules = []):self
     {
+        $this->fields[$name] = ['label' => $label, 'type' => 'file', 'multiple' => $multiple, 'rules' => $rules];
+        return $this;
+    }
+
+    public function validate(array $data, array $files= []): bool
+    {
+        //normalize  $_FILES
+        $files = FormUtils::normalizeFiles($files);
+
         foreach ($this->fields as $name => $field) {
             $value = $data[$name] ?? null;
 
             foreach ($field['rules']  as $rule) {
                 if ($rule instanceof ValidationRule) {
-                    $error = $rule->validate($field['label'], $value);
+                    $error = $rule->validate($name, $value, $files);
                     if ($error !== null) {
                         $this->errors[$name][] = $error;
                     }
