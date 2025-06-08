@@ -7,6 +7,7 @@ A lightweight, extensible system for building, rendering, and validating HTML fo
 - Fluent form building interface (`FormBuilder`)
 - Form rendering to HTML (`FormRenderer`)
 - Validation rule support (e.g., Required, Email, MinLength, MaxLength, Numeric)
+- File input and ValidationFile rule support (e.g., MIME Type, File Size)
 - Inline error display below each field
 - Unit tested with PHPUnit
 
@@ -59,20 +60,35 @@ $form = (new FormBuilder('/submit.php'))
         new FileRequiredRule(),
         new FileSizeRule(2 * 1024 * 1024), // 2MB
         new FileMimeTypeRule(['image/jpeg', 'image/png']),
-    ]);
+    ],
+      __DIR__ . '/uploads' // target directory
+    );
 ```
 
-### 2. Validate data
+### 2. Validate data without Files
 
 ```php
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($form->validate($_POST, $_FILES)) {
+    if ($form->validate($_POST)) {
         // Process data (e.g., save to DB, send email)
     }
 }
 ```
 
-### 3. Render form
+### 3. Validate data with Files
+
+```php
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($form->validate($_POST, $_FILES)) {
+        $files = $form->move(); // moves files to specified locations and return ['avatar'][0] => ['/target/path/1234_avatar.jpg']
+        // Process data (e.g., save to DB, send email)
+    }
+}
+```
+
+🔐 move() uses secure validation is_uploaded_file() and move_uploaded_file().
+
+### 4. Render form
 
 ```php
 echo FormRenderer::render($form, $_POST);
@@ -114,27 +130,38 @@ Includes tests for:
 - Input rendering
 - Validation errors
 - Rule logic (email, numeric, minlength, maxlength, required)
+- File Rule logic (MIME, size, required)
+- Single and multiple file support (multiple)
+- Upload error validation (UPLOAD_ERR_*)
+- Error handling in moveUploadedFile()
+- Unit and integration testing with FormBuilder
+- Mocking file uploads and system functions
 
 ## 📁 Project Structure
 
 ```
-src/
-└── Form/
-    ├── FormBuilder.php
-    ├── FormRenderer.php
-    └── Validator/
-        ├── ValidationRule.php
-        ├── RequiredRule.php
-        ├── EmailRule.php
-        ├── MinLengthRule.php
-        ├── MaxLengthRule.php
-        └── NumericRule.php
-
-tests/
-└── Form/
-    ├── FormBuilderTest.php
-    ├── FormRendererTest.php
-    └── ValidationRulesTest.php
+├── src/
+│ ├── Form/
+│ │ ├── FormBuilder.php 
+│ │ ├── FormRenderer.php 
+│ │ ├── FormInterface.php 
+│ │ ├── Utils/
+│ │ │ ├── FormUtils.php
+│ │ │ └── UploadHandler.php
+│ │ └── Validator/
+│ │ ├── ValidationRule.php
+│ │ ├── RequiredRule.php
+│ │ ├── EmailRule.php
+│ │ ├── FileRequiredRule.php
+│ │ ├── FileMimeTypeRule.php
+│ │ ├── MaxLengthRule.php
+│ │ ├── MinLengthRule.php
+│ │ ├── NumericRule.php
+│ │ └── FileSizeRule.php
+├── tests/
+│ │ ├── Integration
+│ │ └── Unit
+└── README.md
 ```
 
 ## 📃 License

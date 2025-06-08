@@ -11,7 +11,7 @@ class FormUtils
         foreach ($files as $field => $data) {
             // Checking the completeness of the file structure
             if (!isset($data['name'], $data['type'], $data['tmp_name'], $data['error'], $data['size'])) {
-                throw new \InvalidArgumentException("Invalid file upload structure for field '{$field}'");
+                continue;
             }
 
             if (is_array($data['name'])) {
