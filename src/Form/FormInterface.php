@@ -4,5 +4,5 @@ namespace Tomazo\Form;
 
 interface FormInterface
 {
-    public static function createForm(): FormBuilder;
+    public function createForm(): FormBuilder;
 }
