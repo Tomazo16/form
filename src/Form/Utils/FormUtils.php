@@ -33,7 +33,7 @@ class FormUtils
     }
 
     
-    public static function moveFiles(array $fields, array $files, UploadHandler $uploadHandler): array
+    public static function moveFiles(array $fields, array $files, UploadHandler $uploadHandler, PathResolverInterface $pathResolver): array
     {
         $moved = [];
 
@@ -56,24 +56,20 @@ class FormUtils
                 }
 
                 // Target path from field definition
-                $dir = rtrim($field['directory'] ?? '', DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-
-                // Create directory when they is not exists
-                if (!$dir || !is_dir($dir)) {
-                    if (!mkdir($dir, 0777, true) && !is_dir($dir)) {
-                        throw new \RuntimeException("Failed to create directory: {$dir}", 500);
-                    }
-                }
+                $subdir = $field['directory'] ?? '';
 
                 $safeName = bin2hex(random_bytes(8)) . '_' . basename($file['name']);
-                $target = $dir . $safeName;
+
+                // We get the full path of the file on the disk
+                $target = $pathResolver->getTargetPath($subdir, $safeName);
 
                 // Move File
                 if (!$uploadHandler->moveUploadedFile($file['tmp_name'], $target)) {
                     throw new \RuntimeException("Could not move uploaded file '{$file['name']}' to '{$target}'",500);
                 }
 
-                $moved[$fieldName][] = $target;
+                // We return the relative path
+                $moved[$fieldName][] = $pathResolver->getRelativePath($target);
             }
         }
 

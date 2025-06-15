@@ -9,7 +9,7 @@ class FormRenderer
         $errors = $formBuilder->getErrors();
 
         $hasFile = array_filter($formBuilder->getFields(), fn($f) => $f['type'] === 'file');
-        $enctype = $hasFile ? " enctype='multipart/from-data'" : '';
+        $enctype = $hasFile ? " enctype='multipart/form-data'" : '';
 
         $html = "<form action='{$formBuilder->getAction()}' method='{$formBuilder->getMethod()}'{$enctype}>";
 

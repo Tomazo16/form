@@ -3,7 +3,9 @@
 namespace Tomazo\Form;
 
 use Tomazo\Form\Utils\FormUtils;
+use Tomazo\Form\Utils\PathResolverInterface;
 use Tomazo\Form\Utils\UploadHandler;
+use Tomazo\Form\Utils\UploadPathResolver;
 use Tomazo\Form\Validator\ValidationRule;
 
 class FormBuilder
@@ -11,6 +13,8 @@ class FormBuilder
     private array $fields = [];
     private array $errors = [];
     private ?array $files = null;
+    private array $formData; // raw data from Form
+    private ?PathResolverInterface $pathResolver = null;
 
     public function __construct(
         private string $action = '',
@@ -18,6 +22,12 @@ class FormBuilder
     )
     {
         
+    }
+
+    // setup PathResolver when you need replace it or set $baseDir, default we create UploadPathResolver in method move() with default settings
+    public function setPathResolver(PathResolverInterface $pathResolver): void
+    {
+        $this->pathResolver = $pathResolver;
     }
 
     public function addField(string $name, string $label, string $type = 'text', array $rules = []): self
@@ -58,6 +68,9 @@ class FormBuilder
         foreach ($this->fields as $name => $field) {
             $value = $data[$name] ?? null;
 
+            //set raw Form Data
+            $this->formData[$name] = $value;
+
             foreach ($field['rules']  as $rule) {
                 if ($rule instanceof ValidationRule) {
                     $error = $rule->validate($name, $value, $this->files);
@@ -77,7 +90,16 @@ class FormBuilder
             throw new \RuntimeException("You must call validate() before move()");
         }
 
-        return FormUtils::moveFiles($this->fields, $this->files, new UploadHandler());
+        return FormUtils::moveFiles($this->fields, $this->files, new UploadHandler(), $this->pathResolver ?? new UploadPathResolver());
+    }
+
+    public function get(string $name): string
+    {   
+        if (!array_key_exists($name, $this->formData)) {
+            throw new \LogicException("There is not key {$name} in Form Data");
+        }
+
+        return htmlspecialchars($this->formData[$name]);
     }
 
     public function getFields(): array

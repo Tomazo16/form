@@ -4,6 +4,7 @@ use PHPUnit\Framework\TestCase;
 use Tomazo\Form\FormBuilder;
 use Tomazo\Form\Utils\FormUtils;
 use Tomazo\Form\Utils\UploadHandler;
+use Tomazo\Form\Utils\UploadPathResolver;
 use Tomazo\Form\Validator\FileRequiredRule;
 
 final class FormBuilderIntegrationTest extends TestCase
@@ -19,12 +20,12 @@ final class FormBuilderIntegrationTest extends TestCase
     protected function tearDown(): void
     {
         array_map('unlink', glob("{$this->tmpDir}/*"));
-        rmdir($this->tmpDir);
+        @rmdir($this->tmpDir);
     }
 
     public function testValidateAndMoveFileSuccessfully(): void
     {
-            // Create a temporary file as "upload"
+        // Create a temporary file as "upload"
         $tmpFile = tempnam(sys_get_temp_dir(), 'upl');
         file_put_contents($tmpFile, 'fake image content');
 
@@ -38,16 +39,13 @@ final class FormBuilderIntegrationTest extends TestCase
             ],
         ];
 
-        $uploadDir = sys_get_temp_dir() . '/uploads_test/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir);
-        }
+        $uploadDir = $this->tmpDir . '/images';
 
         // 1. Setup FormBuilder
         $form = new FormBuilder();
         $form->addField('avatar', 'Avatar', 'file', [
             'rules' => [],
-            'directory' => $uploadDir,
+            'directory' => 'images',
         ]);
 
         // 2. Validate
@@ -57,28 +55,35 @@ final class FormBuilderIntegrationTest extends TestCase
         // 3. Mock UploadHandler
         $uploadHandler = $this->createMock(UploadHandler::class);
         $uploadHandler->method('isUploadedFile')->willReturn(true);
-        $uploadHandler->method('moveUploadedFile')
-            ->willReturnCallback(function ($tmpName, $target) {
-                return copy($tmpName, $target); // we imitate move_uploaded_file
-            });
+        $uploadHandler->method('moveUploadedFile')->willReturnCallback(
+            fn($tmpName, $target) => copy($tmpName, $target)
+        );
 
-        // 4. Move ( Simulate $form->move() )
-        $moved = FormUtils::moveFiles($form->getFields(), FormUtils::normalizeFiles($files), $uploadHandler);
+        // 4. Use custom UploadPathResolver for controlled path
+        $uploadPathResolver = new UploadPathResolver($this->tmpDir);
 
-        // 5. Chceck
+         // 5. Move ( Simulate $form->move() )
+        $moved = FormUtils::moveFiles(
+            $form->getFields(),
+            FormUtils::normalizeFiles($files),
+            $uploadHandler,
+            $uploadPathResolver
+        );
+
+        // 6. Assertions
         $this->assertArrayHasKey('avatar', $moved);
-        $this->assertFileExists($moved['avatar'][0]);
+        $this->assertFileExists($this->tmpDir . '/' . $moved['avatar'][0]);
 
-        // 6. Clean Up
+        // 7. Cleanup
         unlink($tmpFile);
-        unlink($moved['avatar'][0]);
-        rmdir($uploadDir);
+        unlink($this->tmpDir . '/' . $moved['avatar'][0]);
+        @rmdir($uploadDir);
     }
 
     public function testMoveThrowsExceptionIfValidateNotCalled(): void
     {
         $form = new FormBuilder();
-        $form->addFile('avatar', 'avatar',false,[],$this->tmpDir);
+        $form->addFile('avatar', 'avatar', false, [], $this->tmpDir);
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage("You must call validate() before move()");
@@ -99,7 +104,7 @@ final class FormBuilderIntegrationTest extends TestCase
         ];
 
         $form = new FormBuilder();
-        $form->addFile('avatar', 'avatar',false,[new FileRequiredRule()],$this->tmpDir);
+        $form->addFile('avatar', 'avatar', false, [new FileRequiredRule()], $this->tmpDir);
 
         $valid = $form->validate([], $files);
 

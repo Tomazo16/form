@@ -3,30 +3,37 @@
 use PHPUnit\Framework\TestCase;
 use Tomazo\Form\Utils\FormUtils;
 use Tomazo\Form\Utils\UploadHandler;
+use Tomazo\Form\Utils\UploadPathResolver;
 
 class FormUtilsMoveFilesUnitTest extends TestCase
 {
-    private string $uploadDir;
+    private string $uploadBaseDir;
 
     protected function setUp(): void
     {
-        $this->uploadDir = sys_get_temp_dir() . '/uploads_' . uniqid();
-        mkdir($this->uploadDir, 0777, true);
+        $this->uploadBaseDir = sys_get_temp_dir() . '/uploads_' . uniqid();
+        mkdir($this->uploadBaseDir, 0777, true);
     }
 
     protected function tearDown(): void
     {
-        if (is_dir($this->uploadDir)) {
-            foreach (glob("{$this->uploadDir}/*") as $file) {
-                unlink($file);
-            }
-            rmdir($this->uploadDir);
+        $this->recursiveRemoveDirectory($this->uploadBaseDir);
+    }
+
+    private function recursiveRemoveDirectory(string $dir): void
+    {
+        if (!is_dir($dir)) return;
+
+        $files = array_diff(scandir($dir), ['.', '..']);
+        foreach ($files as $file) {
+            $fullPath = "$dir/$file";
+            is_dir($fullPath) ? $this->recursiveRemoveDirectory($fullPath) : unlink($fullPath);
         }
+        rmdir($dir);
     }
 
     public function testSingleFileUpload()
     {
-        // Create dummy file
         $tmpFile = tempnam(sys_get_temp_dir(), 'upload_');
         file_put_contents($tmpFile, 'file content');
 
@@ -45,33 +52,35 @@ class FormUtilsMoveFilesUnitTest extends TestCase
         $fields = [
             'avatar' => [
                 'type' => 'file',
-                'directory' => $this->uploadDir,
+                'directory' => 'images',
             ],
         ];
 
         $fakeHandler = new class extends UploadHandler {
             public function isUploadedFile(string $tmpName): bool
             {
-                return file_exists($tmpName); // simulate "uploaded" file
+                return file_exists($tmpName);
             }
 
             public function moveUploadedFile(string $tmpName, string $target): bool
             {
-                return rename($tmpName, $target); // simulate "move_uploaded_file"
+                return rename($tmpName, $target);
             }
         };
 
-        $moved = FormUtils::moveFiles($fields, $files, $fakeHandler);
+        $resolver = new UploadPathResolver($this->uploadBaseDir);
+        $moved = FormUtils::moveFiles($fields, $files, $fakeHandler, $resolver);
 
         $this->assertArrayHasKey('avatar', $moved);
         $this->assertCount(1, $moved['avatar']);
-        $this->assertFileExists($moved['avatar'][0]);
-        $this->assertSame('file content', file_get_contents($moved['avatar'][0]));
+
+        $fullPath = $this->uploadBaseDir . DIRECTORY_SEPARATOR . $moved['avatar'][0];
+        $this->assertFileExists($fullPath);
+        $this->assertSame('file content', file_get_contents($fullPath));
     }
 
     public function testMultipleFilesUpload()
     {
-        // Simulate two uploaded files
         $tmpFile1 = tempnam(sys_get_temp_dir(), 'upload_');
         $tmpFile2 = tempnam(sys_get_temp_dir(), 'upload_');
         file_put_contents($tmpFile1, 'first');
@@ -95,7 +104,7 @@ class FormUtilsMoveFilesUnitTest extends TestCase
         $fields = [
             'docs' => [
                 'type' => 'file',
-                'directory' => $this->uploadDir,
+                'directory' => 'docs',
             ],
         ];
 
@@ -111,12 +120,19 @@ class FormUtilsMoveFilesUnitTest extends TestCase
             }
         };
 
-        $moved = FormUtils::moveFiles($fields, $files, $fakeHandler);
+        $resolver = new UploadPathResolver($this->uploadBaseDir);
+        $moved = FormUtils::moveFiles($fields, $files, $fakeHandler, $resolver);
 
         $this->assertArrayHasKey('docs', $moved);
         $this->assertCount(2, $moved['docs']);
-        foreach ($moved['docs'] as $path) {
-            $this->assertFileExists($path);
+
+        foreach ($moved['docs'] as $i => $relPath) {
+            $fullPath = $this->uploadBaseDir . DIRECTORY_SEPARATOR . $relPath;
+            $this->assertFileExists($fullPath);
+            $this->assertSame(
+                $i === 0 ? 'first' : 'second',
+                file_get_contents($fullPath)
+            );
         }
     }
 }
