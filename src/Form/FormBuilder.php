@@ -109,6 +109,13 @@ class FormBuilder
         return $this->fields;
     }
     
+    public function setAction(string $action): self
+    {
+        $this->action = $action;
+
+        return $this;
+    }
+
     public function getAction(): string
     {
         return $this->action;

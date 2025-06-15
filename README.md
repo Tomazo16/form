@@ -37,14 +37,41 @@ composer require tomazo/form
 
 ## 🛠️ Usage
 
-### 1. Create a form
+### 1a. Create file FormConfig.php in config folder
+
+```php
+//config/FormConfig.php
+return [
+    'baseDir' => __DIR__ . 'path/To/Files/Folder/'
+];
+```
+
+This file will be automatically used by the default UploadPathResolver.
+
+### 1b. Create form instance manually with injected PathResolver
+
+If you don’t want to use FormConfig.php (see 1a) or need a custom upload location at runtime, you can manually create a FormBuilder instance and inject a custom PathResolver.
+
+The resolver must implement PathResolverInterface (default is UploadPathResolver):
+
+```php
+// src/Form/FormCreator.php
+use App\Form\FormBuilder;
+use App\Form\Utils\UploadPathResolver;
+
+$form = new FormBuilder();
+$formCreator = $form->setPathResolver(new UploadPathResolver(__DIR__ . 'path/To/Files/Folder/')); // default is UploadPathResolver
+```
+
+### 2. Create a form
 
 ```php
 use App\Form\FormBuilder;
 use App\Form\FormRenderer;
 use App\Form\Validator\{RequiredRule, EmailRule, MinLengthRule};
 
-$form = (new FormBuilder('/submit.php'))
+        // If you used 1a:                   // If you used 1b, continue using $formCreator:
+$form = (new FormBuilder('/submit.php')) or $formCreator->setAction('/submit.php')
     ->addField('name', 'Name', 'text', [
         new RequiredRule('Pole imię nie może być puste.'),
         new MinLengthRule(3)
@@ -65,7 +92,7 @@ $form = (new FormBuilder('/submit.php'))
     );
 ```
 
-### 2. Validate data without Files
+### 3. Validate data without Files
 
 ```php
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -75,12 +102,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ```
 
-### 3. Validate data with Files
+### 4. Validate data with Files
 
 ```php
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($form->validate($_POST, $_FILES)) {
-        $files = $form->move(); // moves files to specified locations and return ['avatar'][0] => ['/target/path/1234_avatar.jpg']
+        if ($file = $form->move()) {
+            $account->setImgSrc($file['avatar'][0]); // Returns e.g. ['avatar' => ['/target/path/1234_avatar.jpg']]
+        }
+
+        ($file = $form->move()) && $account->setImgSrc($file['avatar'][0]);// shortcut version if one file is moved. moves files to specified locations and return ['avatar'][0] => ['/target/path/1234_avatar.jpg']
         // Process data (e.g., save to DB, send email)
     }
 }
@@ -88,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 🔐 move() uses secure validation is_uploaded_file() and move_uploaded_file().
 
-### 4. Render form
+### 5. Render form
 
 ```php
 echo FormRenderer::render($form, $_POST);
