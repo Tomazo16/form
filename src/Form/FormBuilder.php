@@ -84,13 +84,15 @@ class FormBuilder
         return count($this->errors) > 0 ? false : true;
     }
 
-    public function move(): array
+    public function move(): ?array
     {
         if ($this->files === null) {
             throw new \RuntimeException("You must call validate() before move()");
         }
 
-        return FormUtils::moveFiles($this->fields, $this->files, new UploadHandler(), $this->pathResolver ?? new UploadPathResolver());
+        $moved =  FormUtils::moveFiles($this->fields, $this->files, new UploadHandler(), $this->pathResolver ?? new UploadPathResolver());
+                
+        return empty($moved) ? null : $moved;
     }
 
     public function get(string $name): string

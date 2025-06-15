@@ -46,6 +46,13 @@ class FormUtils
 
             // Single and multiple file support (always as array)
             foreach ((array) $uploads as $file) {
+                
+                  // We skip if the file field is empty
+                  if ($file['error'] === UPLOAD_ERR_NO_FILE) {
+                    continue;
+                }
+
+                // Checking array structure or Upload error
                 if (!isset($file['tmp_name'], $file['error'], $file['name']) || $file['error'] !== UPLOAD_ERR_OK) {
                     throw new \RuntimeException("File upload error for field '{$fieldName}': " . FormUtils::uploadErrorMessage($file['error'] ?? UPLOAD_ERR_NO_FILE),400);
                 }
