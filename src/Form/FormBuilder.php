@@ -54,9 +54,9 @@ class FormBuilder
         return $this;
     }
 
-    public function addFile(string $name, string $label,bool $multiple, array $rules = [], ?string $directory = null):self
+    public function addFile(string $name, string $label,bool $multiple, array $rules = [], ?string $directory = null, bool $overwrite = false):self
     {
-        $this->fields[$name] = ['label' => $label, 'type' => 'file', 'multiple' => $multiple, 'rules' => $rules, 'directory' => $directory];
+        $this->fields[$name] = ['label' => $label, 'type' => 'file', 'multiple' => $multiple, 'rules' => $rules, 'directory' => $directory, 'overwrite' => $overwrite];
         return $this;
     }
 
@@ -93,6 +93,26 @@ class FormBuilder
         $moved =  FormUtils::moveFiles($this->fields, $this->files, new UploadHandler(), $this->pathResolver ?? new UploadPathResolver());
                 
         return empty($moved) ? null : $moved;
+    }
+
+    public function moveReplacing(array $oldFiles): ?array
+    {
+        if ($this->files === null) {
+            throw new \RuntimeException("You must call validate() before moveReplacing()");
+        }
+
+        $pathResolver = $this->pathResolver ?? new UploadPathResolver();
+
+        $moved =  FormUtils::moveFiles($this->fields, $this->files, new UploadHandler(), $pathResolver);
+
+    
+        if (!empty($moved)) {
+            FormUtils::removeFile($oldFiles, $moved, $pathResolver);
+    
+            return $moved;
+        }
+    
+        return null;
     }
 
     public function get(string $name): string

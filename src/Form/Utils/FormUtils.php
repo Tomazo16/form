@@ -2,6 +2,9 @@
 
 namespace Tomazo\Form\Utils;
 
+use Tomazo\Form\Exception\FileDeletionException;
+use Tomazo\Form\Exception\FileMovingException;
+
 class FormUtils
 {
     public static function normalizeFiles(array $files): array
@@ -54,12 +57,12 @@ class FormUtils
 
                 // Checking array structure or Upload error
                 if (!isset($file['tmp_name'], $file['error'], $file['name']) || $file['error'] !== UPLOAD_ERR_OK) {
-                    throw new \RuntimeException("File upload error for field '{$fieldName}': " . FormUtils::uploadErrorMessage($file['error'] ?? UPLOAD_ERR_NO_FILE),400);
+                    throw new FileMovingException("File upload error for field '{$fieldName}': " . FormUtils::uploadErrorMessage($file['error'] ?? UPLOAD_ERR_NO_FILE),400);
                 }
                 
                 // Checking the authenticity of file transfers
                 if (!$uploadHandler->isUploadedFile($file['tmp_name'])) {
-                    throw new \RuntimeException("Possible file upload attack: '{$file['name']}' is not a valid uploaded file.",403);
+                    throw new FileMovingException("Possible file upload attack: '{$file['name']}' is not a valid uploaded file.",403);
                 }
 
                 // Target path from field definition
@@ -72,7 +75,7 @@ class FormUtils
 
                 // Move File
                 if (!$uploadHandler->moveUploadedFile($file['tmp_name'], $target)) {
-                    throw new \RuntimeException("Could not move uploaded file '{$file['name']}' to '{$target}'",500);
+                    throw new FileMovingException("Could not move uploaded file '{$file['name']}' to '{$target}'",500);
                 }
 
                 // We return the relative path
@@ -83,6 +86,22 @@ class FormUtils
         return $moved;
     }
 
+    public static function removeFile(?array $oldFiles, array $moved, PathResolverInterface $pathResolver): void
+    {
+        
+            foreach ($moved as $field => $paths) {
+                if (isset($oldFiles[$field])) {
+                    foreach ((array) $oldFiles[$field] as $oldPath) {
+                        $absolutePath = $pathResolver->getAbsolutePath($oldPath);
+                        if (is_file($absolutePath)) {
+                            if (!@unlink($absolutePath)) {
+                                throw new FileDeletionException("Failed to remove file: {$absolutePath}");
+                            }
+                        }
+                    }
+                }
+            }
+    }
 
     private static function uploadErrorMessage(int $errorCode): string
     {

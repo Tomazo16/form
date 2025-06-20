@@ -59,4 +59,9 @@ class UploadPathResolver implements PathResolverInterface
 
         return $relative;
     }
+
+    public function getAbsolutePath(string $relative): string
+    {
+        return rtrim($this->baseDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($relative, DIRECTORY_SEPARATOR);
+    }
 }
