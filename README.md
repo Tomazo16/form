@@ -88,7 +88,7 @@ $form = (new FormBuilder('/submit.php')) or $formCreator->setAction('/submit.php
         new FileSizeRule(2 * 1024 * 1024), // 2MB
         new FileMimeTypeRule(['image/jpeg', 'image/png']),
     ],
-      __DIR__ . '/uploads' // target directory
+    '/uploads' // target directory
     );
 ```
 
@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ```
 
-### 4. Validate data with Files
+### 4a. Validate data with Files
 
 ```php
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -112,6 +112,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         ($file = $form->move()) && $account->setImgSrc($file['avatar'][0]);// shortcut version if one file is moved. moves files to specified locations and return ['avatar'][0] => ['/target/path/1234_avatar.jpg']
+        // Process data (e.g., save to DB, send email)
+    }
+}
+```
+
+### 4b. Validate data with Files (move and replacing file)
+
+```php
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($form->validate($_POST, $_FILES)) {
+        $oldFiles = $account->getImgSrc();
+
+        if ($file = $form->moveReplacing(['avatar' => [$oldFiles]])) {
+            $account->setImgSrc($file['avatar'][0]); // Returns e.g. ['avatar' => ['/target/path/1234_avatar.jpg']]
+        }
+
+        ($file = $form->moveReplacing(['avatar' => [$oldFiles]])) && $account->setImgSrc($file['avatar'][0]);// shortcut version if one file is moved. moves files to specified locations and return ['avatar'][0] => ['/target/path/1234_avatar.jpg']
         // Process data (e.g., save to DB, send email)
     }
 }
