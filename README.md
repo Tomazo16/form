@@ -139,6 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ### 5. Render form
 
 ```php
+$form->bind($entiy); //data from entities or class will be converted to arrays
 echo FormRenderer::render($form, $_POST);
 ```
 

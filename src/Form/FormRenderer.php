@@ -7,6 +7,7 @@ class FormRenderer
     public static function render(FormBuilder $formBuilder, array $values = []): string
     {
         $errors = $formBuilder->getErrors();
+        $values = $values ?: $formBuilder->getData();
 
         $hasFile = array_filter($formBuilder->getFields(), fn($f) => $f['type'] === 'file');
         $enctype = $hasFile ? " enctype='multipart/form-data'" : '';

@@ -14,6 +14,7 @@ class FormBuilder
     private array $errors = [];
     private ?array $files = null;
     private array $formData; // raw data from Form
+    private array $data = []; // entity data converted to arrays
     private ?PathResolverInterface $pathResolver = null;
 
     public function __construct(
@@ -82,6 +83,34 @@ class FormBuilder
         }
 
         return count($this->errors) > 0 ? false : true;
+    }
+
+    public function bind(object $source): void
+    {
+        $data = [];
+
+        foreach (array_keys($this->fields) as $name) {
+            $getter = 'get' . ucfirst($name);
+            $getterIs = 'is' . ucfirst($name);
+
+            $value = match (true) {
+                method_exists($source, $getter) => $source->$getter(),
+                method_exists($source, $getterIs) => $source->$getterIs(),
+                property_exists($source, $name) => $source->$name,
+                default => null
+            };
+
+            if ($value !== null) {
+                $data[$name] = $value;
+            }
+        }
+        
+        $this->data = $data;
+    }
+
+    public function getData(): array
+    {
+        return $this->data;
     }
 
     public function move(): ?array
