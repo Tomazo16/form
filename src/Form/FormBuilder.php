@@ -88,15 +88,16 @@ class FormBuilder
     public function bind(object $source): void
     {
         $data = [];
+        $reflection = new \ReflectionClass($source);
 
         foreach (array_keys($this->fields) as $name) {
             $getter = 'get' . ucfirst($name);
             $getterIs = 'is' . ucfirst($name);
 
             $value = match (true) {
-                method_exists($source, $getter) => $source->$getter(),
-                method_exists($source, $getterIs) => $source->$getterIs(),
-                property_exists($source, $name) => $source->$name,
+                $reflection->hasMethod($getter) && $reflection->getMethod($getter)->isPublic() => $source->$getter(),
+                $reflection->hasMethod($getterIs) && $reflection->getMethod($getterIs)->isPublic() => $source->$getterIs(),
+                $reflection->hasProperty($name) && $reflection->getProperty($name)->isPublic() => $source->$name,
                 default => null
             };
 
