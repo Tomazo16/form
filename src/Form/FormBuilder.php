@@ -85,25 +85,33 @@ class FormBuilder
         return count($this->errors) > 0 ? false : true;
     }
 
-    public function bind(object $source): void
+    public function bind(object|array $source): void
     {
         $data = [];
         $reflection = new \ReflectionClass($source);
 
         foreach (array_keys($this->fields) as $name) {
-            $getter = 'get' . ucfirst($name);
-            $getterIs = 'is' . ucfirst($name);
 
-            $value = match (true) {
-                $reflection->hasMethod($getter) && $reflection->getMethod($getter)->isPublic() => $source->$getter(),
-                $reflection->hasMethod($getterIs) && $reflection->getMethod($getterIs)->isPublic() => $source->$getterIs(),
-                $reflection->hasProperty($name) && $reflection->getProperty($name)->isPublic() => $source->$name,
-                default => null
-            };
+            if (is_array($source)) {
+                if (array_key_exists($name, $source) && $source[$name] !== null) {
+                    $data[$name] = $source[$name];
+                }
+            } elseif(is_object($source)) {
+                $getter = 'get' . ucfirst($name);
+                $getterIs = 'is' . ucfirst($name);
 
-            if ($value !== null) {
-                $data[$name] = $value;
+                $value = match (true) {
+                    $reflection->hasMethod($getter) && $reflection->getMethod($getter)->isPublic() => $source->$getter(),
+                    $reflection->hasMethod($getterIs) && $reflection->getMethod($getterIs)->isPublic() => $source->$getterIs(),
+                    $reflection->hasProperty($name) && $reflection->getProperty($name)->isPublic() => $source->$name,
+                    default => null
+                };
+
+                if ($value !== null) {
+                    $data[$name] = $value;
+                }
             }
+            
         }
         
         $this->data = $data;
